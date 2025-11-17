@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Script Builder</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="top-bar">
+    <button id="btn-open-map">Схема</button>
+    <button id="btn-zoom-in">+</button>
+    <button id="btn-zoom-out">−</button>
+    <button id="btn-add-block">+ Блок</button>
+</div>
+
+<div id="workspace">
+    <div id="script-area"></div>
+</div>
+
+<div id="mindmap-screen" class="hidden">
+    <div id="mindmap-top">
+        <button id="btn-close-map">Назад</button>
+    </div>
+    <div id="mindmap-area"></div>
+</div>
+  
+<div id="new-block-modal" class="modal hidden">
+    <div class="modal-content">
+        <h3>Новый блок</h3>
+        <input id="new-block-title" placeholder="Короткое название">
+        <textarea id="new-block-text" placeholder="Полный текст..."></textarea>
+        <div class="modal-buttons">
+            <button id="add-block-confirm">Добавить</button>
+            <button id="add-block-cancel">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<ul id="context-menu" class="hidden"></ul>
+
+<script src="app.js"></script>
+</body>
+</html>
