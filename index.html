@@ -1,13 +1,3 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Script Builder</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-
 <div id="top-bar">
     <button id="btn-open-map">Схема</button>
     <button id="btn-zoom-in">+</button>
@@ -16,14 +6,19 @@
 </div>
 
 <div id="workspace">
-    <div id="script-area"></div>
+    <div id="script-area-wrapper">
+        <div id="script-area"></div>
+    </div>
 </div>
 
 <div id="mindmap-screen" class="hidden">
     <div id="mindmap-top">
-        <button id="btn-close-map">Назад</button>
+        <button id="btn-close-map">Чат</button>
+        <button id="btn-add-map-block">+ Блок на карте</button>
     </div>
-    <div id="mindmap-area"></div>
+    <div id="mindmap-area">
+        <!-- mindmap-content-wrapper будет создан в JS, если его тут нет -->
+    </div>
 </div>
   
 <div id="new-block-modal" class="modal hidden">
@@ -39,7 +34,3 @@
 </div>
 
 <ul id="context-menu" class="hidden"></ul>
-
-<script src="app.js"></script>
-</body>
-</html>
