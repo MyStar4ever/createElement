@@ -1,0 +1,168 @@
+body {
+    margin: 0;
+    background: #0d0d0f;
+    color: #eee;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden; 
+}
+
+#top-bar {
+    background: #111;
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+    border-bottom: 1px solid #222;
+}
+
+button {
+    background: #222;
+    color: #eee;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+button:hover { background: #333; }
+
+#workspace {
+    padding: 15px;
+    flex-grow: 1; 
+    overflow-y: auto; 
+    display: flex;
+    justify-content: center; 
+    /* Добавляем обертку для масштабирования чата */
+}
+
+/* Новый контейнер для масштабирования чата */
+#script-area-wrapper {
+    width: 100%;
+    max-width: 600px;
+    transform-origin: top center; /* Масштабируем от центра вверх */
+    transition: transform 0.2s ease;
+}
+
+#script-area {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.block {
+    padding: 12px;
+    background: #1e1e22;
+    border-radius: 14px;
+    max-width: 600px;
+    cursor: pointer;
+    position: relative;
+    transition: 0.25s ease;
+    min-width: 100px;
+    text-align: center;
+    box-sizing: border-box;
+}
+/* ... (остальной CSS для блоков и модалки без изменений) ... */
+
+.block.collapsed {
+    opacity: 0.8;
+    padding: 10px;
+}
+
+.block-color-red { background: #330000; }
+.block-color-orange { background: #332000; }
+.block-color-blue { background: #001a33; }
+.block-color-green { background: #002d00; }
+
+#mindmap-screen {
+    position: fixed;
+    inset: 0;
+    background: #0b0b0d;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.hidden { display: none !important; } 
+
+#mindmap-area {
+    margin-top: 10px;
+    position: relative; 
+    flex-grow: 1;
+    overflow: auto;
+    background-image: linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111), 
+                      linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111);
+    background-position: 0 0, 50px 50px;
+    background-size: 100px 100px;
+}
+
+#mindmap-content-wrapper {
+    position: absolute;
+    transform-origin: 0 0;
+    width: 5000px; 
+    height: 5000px;
+    transition: transform 0.2s ease; /* Добавляем transition обратно для плавности */
+}
+/* ... (остальной CSS без изменений) ... */
+
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: #1a1a1d;
+    padding: 20px;
+    border-radius: 14px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.modal-content input,
+.modal-content textarea {
+    background: #111;
+    color: #eee;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 8px;
+    width: 100%;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.block.chat {
+    border-radius: 18px 18px 4px 18px; 
+    margin-left: auto;               
+    background: #242428;
+    padding: 14px;
+    max-width: 70%;
+    text-align: left; 
+}
+
+.map-line {
+    z-index: 1;
+}
+
+.map-block-menu button {
+    background: #333;
+    color: #fff;
+    border: none;
+    margin: 2px;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.map-block-menu button:hover {
+    background: #555;
+}
