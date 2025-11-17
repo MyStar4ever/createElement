@@ -3,6 +3,10 @@ body {
     background: #0d0d0f;
     color: #eee;
     font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden; 
 }
 
 #top-bar {
@@ -25,12 +29,26 @@ button:hover { background: #333; }
 
 #workspace {
     padding: 15px;
+    flex-grow: 1; 
+    overflow-y: auto; 
+    display: flex;
+    justify-content: center; 
+    /* Добавляем обертку для масштабирования чата */
+}
+
+/* Новый контейнер для масштабирования чата */
+#script-area-wrapper {
+    width: 100%;
+    max-width: 600px;
+    transform-origin: top center; /* Масштабируем от центра вверх */
+    transition: transform 0.2s ease;
 }
 
 #script-area {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    width: 100%;
 }
 
 .block {
@@ -41,7 +59,11 @@ button:hover { background: #333; }
     cursor: pointer;
     position: relative;
     transition: 0.25s ease;
+    min-width: 100px;
+    text-align: center;
+    box-sizing: border-box;
 }
+/* ... (остальной CSS для блоков и модалки без изменений) ... */
 
 .block.collapsed {
     opacity: 0.8;
@@ -58,34 +80,32 @@ button:hover { background: #333; }
     inset: 0;
     background: #0b0b0d;
     padding: 10px;
+    display: flex;
+    flex-direction: column;
 }
 
-.hidden { display: none; }
+.hidden { display: none !important; } 
 
 #mindmap-area {
     margin-top: 10px;
-    transform-origin: 0 0;
+    position: relative; 
+    flex-grow: 1;
+    overflow: auto;
+    background-image: linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111), 
+                      linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111);
+    background-position: 0 0, 50px 50px;
+    background-size: 100px 100px;
 }
 
-#context-menu {
+#mindmap-content-wrapper {
     position: absolute;
-    background: #1b1b1e;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 5px 0;
-    list-style: none;
-    width: 180px;
+    transform-origin: 0 0;
+    width: 5000px; 
+    height: 5000px;
+    transition: transform 0.2s ease; /* Добавляем transition обратно для плавности */
 }
+/* ... (остальной CSS без изменений) ... */
 
-#context-menu li {
-    padding: 8px 10px;
-    cursor: pointer;
-}
-#context-menu li:hover {
-    background: #333;
-}
-
-/* Модалка */
 .modal {
     position: fixed;
     inset: 0;
@@ -121,11 +141,28 @@ button:hover { background: #333; }
     gap: 10px;
 }
 
-/* Чат-стиль для сценария */
 .block.chat {
-    border-radius: 18px 18px 4px 18px; /* как пузырь телеграма */
-    margin-left: auto;               /* уходит вправо */
+    border-radius: 18px 18px 4px 18px; 
+    margin-left: auto;               
     background: #242428;
     padding: 14px;
     max-width: 70%;
+    text-align: left; 
+}
+
+.map-line {
+    z-index: 1;
+}
+
+.map-block-menu button {
+    background: #333;
+    color: #fff;
+    border: none;
+    margin: 2px;
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.map-block-menu button:hover {
+    background: #555;
 }
