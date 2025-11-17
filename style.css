@@ -1,0 +1,131 @@
+body {
+    margin: 0;
+    background: #0d0d0f;
+    color: #eee;
+    font-family: Arial, sans-serif;
+}
+
+#top-bar {
+    background: #111;
+    padding: 10px;
+    display: flex;
+    gap: 10px;
+    border-bottom: 1px solid #222;
+}
+
+button {
+    background: #222;
+    color: #eee;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+button:hover { background: #333; }
+
+#workspace {
+    padding: 15px;
+}
+
+#script-area {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.block {
+    padding: 12px;
+    background: #1e1e22;
+    border-radius: 14px;
+    max-width: 600px;
+    cursor: pointer;
+    position: relative;
+    transition: 0.25s ease;
+}
+
+.block.collapsed {
+    opacity: 0.8;
+    padding: 10px;
+}
+
+.block-color-red { background: #330000; }
+.block-color-orange { background: #332000; }
+.block-color-blue { background: #001a33; }
+.block-color-green { background: #002d00; }
+
+#mindmap-screen {
+    position: fixed;
+    inset: 0;
+    background: #0b0b0d;
+    padding: 10px;
+}
+
+.hidden { display: none; }
+
+#mindmap-area {
+    margin-top: 10px;
+    transform-origin: 0 0;
+}
+
+#context-menu {
+    position: absolute;
+    background: #1b1b1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 5px 0;
+    list-style: none;
+    width: 180px;
+}
+
+#context-menu li {
+    padding: 8px 10px;
+    cursor: pointer;
+}
+#context-menu li:hover {
+    background: #333;
+}
+
+/* Модалка */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: #1a1a1d;
+    padding: 20px;
+    border-radius: 14px;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.modal-content input,
+.modal-content textarea {
+    background: #111;
+    color: #eee;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 8px;
+    width: 100%;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Чат-стиль для сценария */
+.block.chat {
+    border-radius: 18px 18px 4px 18px; /* как пузырь телеграма */
+    margin-left: auto;               /* уходит вправо */
+    background: #242428;
+    padding: 14px;
+    max-width: 70%;
+}
