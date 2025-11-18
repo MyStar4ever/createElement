@@ -9,160 +9,72 @@ body {
     overflow: hidden; 
 }
 
+/* Стили для полос прокрутки (Chrome, Safari, Opera) */
+body::-webkit-scrollbar, #workspace::-webkit-scrollbar, #mindmap-area::-webkit-scrollbar { width: 10px; height: 10px; }
+body::-webkit-scrollbar-track, #workspace::-webkit-scrollbar-track, #mindmap-area::-webkit-scrollbar-track { background: #111; }
+body::-webkit-scrollbar-thumb, #workspace::-webkit-scrollbar-thumb, #mindmap-area::-webkit-scrollbar-thumb { background: #444; border-radius: 5px; }
+body::-webkit-scrollbar-thumb:hover, #workspace::-webkit-scrollbar-thumb:hover, #mindmap-area::-webkit-scrollbar-thumb:hover { background: #555; }
+
 #top-bar {
-    background: #111;
-    padding: 10px;
-    display: flex;
-    gap: 10px;
-    border-bottom: 1px solid #222;
+    background: #111; padding: 10px; display: flex; gap: 10px; border-bottom: 1px solid #222;
 }
 
 button {
-    background: #222;
-    color: #eee;
-    padding: 8px 12px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
+    background: #222; color: #eee; padding: 8px 12px; border: none; border-radius: 8px; cursor: pointer;
 }
 button:hover { background: #333; }
 
 #workspace {
-    padding: 15px;
-    flex-grow: 1; 
-    overflow-y: auto; 
-    display: flex;
-    justify-content: center; 
-    /* Добавляем обертку для масштабирования чата */
+    padding: 15px; flex-grow: 1; overflow-y: auto; display: flex; justify-content: center; scroll-behavior: smooth;
 }
 
-/* Новый контейнер для масштабирования чата */
 #script-area-wrapper {
-    width: 100%;
-    max-width: 600px;
-    transform-origin: top center; /* Масштабируем от центра вверх */
-    transition: transform 0.2s ease;
+    width: 100%; max-width: 600px; transform-origin: top center; transition: transform 0.2s ease;
 }
 
 #script-area {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
+    display: flex; flex-direction: column; gap: 12px; width: 100%;
+    align-items: flex-end; /* Выравнивание всех блоков по правому краю в чате */
 }
 
 .block {
-    padding: 12px;
-    background: #1e1e22;
-    border-radius: 14px;
-    max-width: 600px;
-    cursor: pointer;
-    position: relative;
-    transition: 0.25s ease;
-    min-width: 100px;
-    text-align: center;
-    box-sizing: border-box;
+    padding: 12px; background: #1e1e22; border-radius: 14px; max-width: 600px;
+    position: relative; transition: 0.25s ease, height 0.3s ease; /* Плавное изменение высоты */
+    min-width: 100px; text-align: center; box-sizing: border-box; cursor: grab; 
 }
-/* ... (остальной CSS для блоков и модалки без изменений) ... */
-
-.block.collapsed {
-    opacity: 0.8;
-    padding: 10px;
-}
-
-.block-color-red { background: #330000; }
-.block-color-orange { background: #332000; }
-.block-color-blue { background: #001a33; }
-.block-color-green { background: #002d00; }
-
-#mindmap-screen {
-    position: fixed;
-    inset: 0;
-    background: #0b0b0d;
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-}
-
-.hidden { display: none !important; } 
-
-#mindmap-area {
-    margin-top: 10px;
-    position: relative; 
-    flex-grow: 1;
-    overflow: auto;
-    background-image: linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111), 
-                      linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111);
-    background-position: 0 0, 50px 50px;
-    background-size: 100px 100px;
-}
-
-#mindmap-content-wrapper {
-    position: absolute;
-    transform-origin: 0 0;
-    width: 5000px; 
-    height: 5000px;
-    transition: transform 0.2s ease; /* Добавляем transition обратно для плавности */
-}
-/* ... (остальной CSS без изменений) ... */
-
-.modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.65);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.modal-content {
-    background: #1a1a1d;
-    padding: 20px;
-    border-radius: 14px;
-    width: 300px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.modal-content input,
-.modal-content textarea {
-    background: #111;
-    color: #eee;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 8px;
-    width: 100%;
-}
-
-.modal-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-}
+.block:active { cursor: grabbing; }
 
 .block.chat {
     border-radius: 18px 18px 4px 18px; 
-    margin-left: auto;               
-    background: #242428;
-    padding: 14px;
-    max-width: 70%;
-    text-align: left; 
+    /* margin-left: auto; удалено, управляется родителем */
+    background: #242428; padding: 14px; max-width: 70%; text-align: left; 
 }
 
-.map-line {
-    z-index: 1;
+/* При редактировании в чате */
+.block.chat.is-editing {
+    margin-right: auto !important; /* Предотвращаем прыжок влево, центрируем */
+    max-width: 600px !important; /* Растягиваем на всю доступную ширину */
 }
 
-.map-block-menu button {
-    background: #333;
-    color: #fff;
-    border: none;
-    margin: 2px;
-    padding: 4px 8px;
-    cursor: pointer;
-    border-radius: 4px;
+/* Важно: сохраняем переносы строк при отображении */
+.block-text {
+    white-space: pre-wrap; /* Сохраняет пробелы и переносы строк */
 }
-.map-block-menu button:hover {
-    background: #555;
-}
+
+
+#mindmap-screen { position: fixed; inset: 0; background: #0b0b0d; padding: 10px; display: flex; flex-direction: column; }
+.hidden { display: none !important; } 
+#mindmap-area { margin-top: 10px; position: relative; flex-grow: 1; overflow: auto; background: #0b0b0d; }
+#mindmap-content-wrapper { position: absolute; transform-origin: 0 0; width: 5000px; height: 5000px; transition: transform 0.2s ease; }
+
+/* Стили для контекстного меню и кнопок карты */
+.map-block-menu { position: absolute; top: -30px; right: 0; }
+.map-block-menu button { background: #333; color: #fff; border: none; margin: 2px; padding: 4px 8px; cursor: pointer; border-radius: 4px; }
+.map-block-menu button:hover { background: #555; }
+#context-menu { position: absolute; background: #1e1e22; border: 1px solid #333; list-style: none; padding: 5px; margin: 0; border-radius: 8px; z-index: 1000; }
+#context-menu li { padding: 5px 10px; cursor: pointer; }
+#context-menu li:hover { background: #333; }
+
+/* Убираем стандартную рамку textarea при фокусе и предотвращаем изменение размера */
+textarea:focus { outline: none !important; border: none !important; box-shadow: none !important; }
+textarea { resize: none !important; border: none !important; box-shadow: none !important; }
