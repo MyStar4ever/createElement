@@ -15,6 +15,7 @@ body::-webkit-scrollbar-track, #workspace::-webkit-scrollbar-track, #mindmap-are
 body::-webkit-scrollbar-thumb, #workspace::-webkit-scrollbar-thumb, #mindmap-area::-webkit-scrollbar-thumb { background: #444; border-radius: 5px; }
 body::-webkit-scrollbar-thumb:hover, #workspace::-webkit-scrollbar-thumb:hover, #mindmap-area::-webkit-scrollbar-thumb:hover { background: #555; }
 
+
 #top-bar {
     background: #111; padding: 10px; display: flex; gap: 10px; border-bottom: 1px solid #222;
 }
@@ -41,6 +42,7 @@ button:hover { background: #333; }
     padding: 12px; background: #1e1e22; border-radius: 14px; max-width: 600px;
     position: relative; transition: 0.25s ease, height 0.3s ease; /* Плавное изменение высоты */
     min-width: 100px; text-align: center; box-sizing: border-box; cursor: grab; 
+    word-break: break-word; /* Добавлено: помогает длинным строкам переноситься */
 }
 .block:active { cursor: grabbing; }
 
@@ -77,4 +79,9 @@ button:hover { background: #333; }
 
 /* Убираем стандартную рамку textarea при фокусе и предотвращаем изменение размера */
 textarea:focus { outline: none !important; border: none !important; box-shadow: none !important; }
-textarea { resize: none !important; border: none !important; box-shadow: none !important; }
+textarea { 
+    resize: none !important; 
+    border: none !important; 
+    box-shadow: none !important;
+    transition: height 0.3s ease; /* Плавное изменение высоты textarea */
+}
