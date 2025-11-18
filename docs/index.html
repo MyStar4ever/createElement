@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<!-- !!! ВАЖНО: ЭТА СТРОКА СВЯЗЫВАЕТ HTML И CSS !!! -->
 <link rel="stylesheet" href="style.css"> 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Script Builder</title>
-<!-- Файл app.js тоже подключается тут -->
 <script src="app.js"></script>
 </head>
 <body>
@@ -16,6 +14,7 @@
     <button id="btn-zoom-in">+</button>
     <button id="btn-zoom-out">−</button>
     <button id="btn-add-block">+ Блок</button>
+    <!-- Кнопка добавления блока на карту была удалена, чтобы использовать общую логику -->
 </div>
 
 <div id="workspace">
@@ -27,25 +26,15 @@
 <div id="mindmap-screen" class="hidden">
     <div id="mindmap-top">
         <button id="btn-close-map">Чат</button>
-        <button id="btn-add-map-block">+ Блок на карте</button>
+        <!-- Кнопка добавления на карту тут не нужна, используйте контекстное меню -->
     </div>
     <div id="mindmap-area">
-        <!-- mindmap-content-wrapper будет создан в JS, если его тут нет -->
+        <!-- mindmap-content-wrapper будет создан в JS -->
     </div>
 </div>
   
-<div id="new-block-modal" class="modal hidden">
-    <div class="modal-content">
-        <h3>Новый блок</h3>
-        <input id="new-block-title" placeholder="Короткое название">
-        <textarea id="new-block-text" placeholder="Полный текст..."></textarea>
-        <div class="modal-buttons">
-            <button id="add-block-confirm">Добавить</button>
-            <button id="add-block-cancel">Отмена</button>
-        </div>
-    </div>
-</div>
-
+<!-- Модальное окно и контекстное меню из оригинального HTML. Модалка будет удалена в JS -->
+<div id="new-block-modal" class="modal hidden"></div>
 <ul id="context-menu" class="hidden"></ul>
 
 </body>
