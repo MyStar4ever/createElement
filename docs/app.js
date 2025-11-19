@@ -216,12 +216,51 @@ function setupContextMenu(el, blockData) {
 }
 
 // Вынесли показ меню в отдельную функцию
-function showContextMenu(x, y, blockData) {
-    contextMenu.style.top = `${y}px`;
-    contextMenu.style.left = `${x}px`;
-    contextMenu.classList.remove('hidden');
+function showContextMenu(x, y, blockData, animated = false) {
+    contextMenu.style.display = 'block';
+    contextMenu.style.opacity = 0;
+    contextMenu.style.transform = 'scale(0.9)';
     contextMenu.innerHTML = '';
 
+    // размеры меню
+    const menuWidth = 150; // ширина меню, подгоняй под свой стиль
+    const menuHeight = 200; // примерная высота (можно динамически)
+
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // если меню вылезает за правый край, смещаем влево
+    let posX = x;
+    if (x + menuWidth > windowWidth) {
+        posX = x - menuWidth; // сдвигаем влево
+        if (posX < 0) posX = 0; // не уходим за левый край
+    }
+
+    // если меню вылезает за низ, сдвигаем вверх
+    let posY = y;
+    if (y + menuHeight > windowHeight) {
+        posY = y - menuHeight;
+        if (posY < 0) posY = 0;
+    }
+
+    contextMenu.style.left = posX + 'px';
+    contextMenu.style.top = posY + 'px';
+
+ // предотвращаем выделение текста
+    contextMenu.addEventListener('mousedown', e => e.preventDefault());
+    contextMenu.addEventListener('touchstart', e => e.preventDefault());
+
+
+    // анимация появления
+    contextMenu.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+    requestAnimationFrame(() => {
+        contextMenu.style.opacity = 1;
+        contextMenu.style.transform = 'scale(1)';
+    });
+
+    
+   // пункты меню
+    contextMenu.innerHTML = '';
     const deleteItem = document.createElement('li');
     deleteItem.innerText = 'Удалить блок';
     deleteItem.onclick = () => deleteBlockFromState(blockData.id);
@@ -264,6 +303,7 @@ function showContextMenu(x, y, blockData) {
 
 
 
+
   
 
 
@@ -272,66 +312,236 @@ function showContextMenu(x, y, blockData) {
         if (targetBlockEl) { targetBlockEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); /* ... */ }
     }
 
-    function setupContextMenu(el, blockData) {
+   function setupContextMenu(el, blockData) {
+    // ПК — правый клик
     el.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        showContextMenu(e.clientX, e.clientY, blockData);
+    });
 
-        contextMenu.style.top = `${e.clientY}px`;
-        contextMenu.style.left = `${e.clientX}px`;
-        contextMenu.classList.remove('hidden');
-        contextMenu.innerHTML = '';
+    // Мобильные — простой тап (touchstart)
+    el.addEventListener('touchstart', (e) => {
+        // игнорируем, если клик на textarea или меню
+        if (e.target.closest('textarea') || e.target.closest('.map-block-menu')) return;
 
-        // Удаление блока
-        const deleteItem = document.createElement('li');
-        deleteItem.innerText = 'Удалить блок';
-        deleteItem.onclick = () => deleteBlockFromState(blockData.id);
-        contextMenu.appendChild(deleteItem);
+        e.preventDefault();
+        e.stopPropagation();
 
-        // Свернуть/развернуть блок
-       const collapseItem = document.createElement('li');
-collapseItem.innerText = 'Свернуть/развернуть';
-collapseItem.onclick = () => {
-    const blockEl = document.querySelector(`[data-block-id="${blockData.id}"]`);
-    toggleMessageCollapse(blockEl);
-    contextMenu.classList.add('hidden'); // закрываем меню сразу
-};
-contextMenu.appendChild(collapseItem);
-
-
-        // Остальные пункты
-        if (appState.currentView === 'chat') {
-            const mapItem = document.createElement('li');
-            mapItem.innerText = 'Показать на схеме';
-            mapItem.onclick = () => {
-                document.getElementById("btn-open-map").click();
-                setTimeout(() => focusOnBlock(blockData.id), 300);
-            };
-            contextMenu.appendChild(mapItem);
-        } else if (appState.currentView === 'map') {
-            const chatItem = document.createElement('li');
-            chatItem.innerText = 'Показать в чате';
-            chatItem.onclick = () => {
-                document.getElementById("btn-close-map").click();
-                setTimeout(() => focusOnBlock(blockData.id), 300);
-            };
-            contextMenu.appendChild(chatItem);
-
-            const addChildItem = document.createElement('li');
-            addChildItem.innerText = 'Добавить дочерний';
-            addChildItem.onclick = () => addChildBlock(blockData.id);
-            contextMenu.appendChild(addChildItem);
-        }
+        const rect = el.getBoundingClientRect();
+        // показываем меню чуть ниже и правее блока
+        showContextMenu(rect.left + 10, rect.top + 10, blockData);
     });
 }
+
+// функция показа меню остаётся той же
+function setupContextMenu(el, blockData) {
+    let pressTimer = null;
+    const pressDuration = 400; // 0.4 секунды
+
+    // ПК — ПКМ остаётся
+    el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showContextMenu(e.clientX, e.clientY, blockData);
+    });
+
+    // Мобильные — long press
+    el.addEventListener('touchstart', (e) => {
+        if (e.target.closest('textarea') || e.target.closest('.map-block-menu')) return;
+
+        // отключаем выделение текста на время удержания
+        el.style.userSelect = 'none';
+
+        const touch = e.touches[0];
+        pressTimer = setTimeout(() => {
+            const rect = el.getBoundingClientRect();
+            showContextMenu(rect.left + 10, rect.top + 10, blockData);
+            pressTimer = null;
+        }, pressDuration);
+    });
+
+    el.addEventListener('touchend', (e) => {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+        // возвращаем возможность выделения
+        el.style.userSelect = '';
+    });
+
+    el.addEventListener('touchmove', (e) => {
+        // если палец двигается — отменяем меню
+        clearTimeout(pressTimer);
+        pressTimer = null;
+        el.style.userSelect = '';
+    });
+}
+
+// функция показа меню остаётся та же
+function setupContextMenu(el, blockData) {
+    let pressTimer = null;
+    const pressDuration = 400; // 0.4 секунды
+
+    // ПК — ПКМ
+    el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showContextMenu(e.clientX, e.clientY, blockData);
+    });
+
+    // Мобильные — long press
+    el.addEventListener('touchstart', (e) => {
+        if (e.target.closest('textarea') || e.target.closest('.map-block-menu')) return;
+
+        // отключаем выделение текста на время удержания
+        el.style.userSelect = 'none';
+
+        const touch = e.touches[0];
+        pressTimer = setTimeout(() => {
+            const rect = el.getBoundingClientRect();
+            showContextMenu(rect.left + 10, rect.top + 10, blockData, true); // true — анимация
+            pressTimer = null;
+        }, pressDuration);
+    });
+
+    el.addEventListener('touchend', (e) => {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+        el.style.userSelect = '';
+    });
+
+    el.addEventListener('touchmove', (e) => {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+        el.style.userSelect = '';
+    });
+}
+
+// меню с анимацией
+function showContextMenu(x, y, blockData, animated = false) {
+    contextMenu.style.top = `${y}px`;
+    contextMenu.style.left = `${x}px`;
+    contextMenu.classList.remove('hidden');
+    contextMenu.innerHTML = '';
+
+    // отключаем выделение текста
+    contextMenu.style.userSelect = 'none';
+    contextMenu.querySelectorAll('*').forEach(el => el.style.userSelect = 'none');
+
+    // анимация
+    if (animated) {
+        contextMenu.style.opacity = 0;
+        contextMenu.style.transform = 'scale(0.9)';
+        contextMenu.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+        requestAnimationFrame(() => {
+            contextMenu.style.opacity = 1;
+            contextMenu.style.transform = 'scale(1)';
+        });
+    } else {
+        contextMenu.style.opacity = 1;
+        contextMenu.style.transform = 'scale(1)';
+        contextMenu.style.transition = '';
+      contextMenu.addEventListener('mousedown', e => e.preventDefault());
+contextMenu.addEventListener('touchstart', e => e.preventDefault());
+
+    }
+
+    // пункты меню
+    const deleteItem = document.createElement('li');
+    deleteItem.innerText = 'Удалить блок';
+    deleteItem.onclick = () => deleteBlockFromState(blockData.id);
+    contextMenu.appendChild(deleteItem);
+
+    const collapseItem = document.createElement('li');
+    collapseItem.innerText = 'Свернуть/развернуть';
+    collapseItem.onclick = () => {
+        const blockEl = document.querySelector(`[data-block-id="${blockData.id}"]`);
+        toggleMessageCollapse(blockEl);
+        contextMenu.classList.add('hidden');
+    };
+    contextMenu.appendChild(collapseItem);
+
+    if (appState.currentView === 'chat') {
+        const mapItem = document.createElement('li');
+        mapItem.innerText = 'Показать на схеме';
+        mapItem.onclick = () => {
+            document.getElementById("btn-open-map").click();
+            setTimeout(() => focusOnBlock(blockData.id), 300);
+        };
+        contextMenu.appendChild(mapItem);
+    } else if (appState.currentView === 'map') {
+        const chatItem = document.createElement('li');
+        chatItem.innerText = 'Показать в чате';
+        chatItem.onclick = () => {
+            document.getElementById("btn-close-map").click();
+            setTimeout(() => focusOnBlock(blockData.id), 300);
+        };
+        contextMenu.appendChild(chatItem);
+
+        const addChildItem = document.createElement('li');
+        addChildItem.innerText = 'Добавить дочерний';
+        addChildItem.onclick = () => addChildBlock(blockData.id);
+        contextMenu.appendChild(addChildItem);
+    }
+}
+
 
    document.addEventListener('click', (e) => {
     if (!e.target.closest('.map-block-menu')) contextMenu.classList.add('hidden');
 });
 
+function setupLongPressMenu(el, blockData) {
+    let timer = null;
+
+    el.addEventListener('touchstart', e => {
+        if (e.touches.length > 1) return;
+
+        timer = setTimeout(() => {
+            e.preventDefault(); // чтобы не выделял текст
+
+            const rect = el.getBoundingClientRect();
+            const menuWidth = 150;
+            const menuHeight = 200;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            let posX = (rect.left + rect.right) / 2 > windowWidth / 2
+                ? rect.left - menuWidth
+                : rect.right;
+
+            posX = Math.max(0, Math.min(posX, windowWidth - menuWidth));
+            let posY = rect.top;
+            if(posY + menuHeight > windowHeight) posY = windowHeight - menuHeight;
+            if(posY < 0) posY = 0;
+
+            contextMenu.style.left = posX + 'px';
+            contextMenu.style.top = posY + 'px';
+            contextMenu.classList.remove('hidden');
+
+            contextMenu.innerHTML = '';
+
+            const deleteItem = document.createElement('li');
+            deleteItem.innerText = 'Удалить блок';
+            deleteItem.onclick = () => deleteBlockFromState(blockData.id);
+            contextMenu.appendChild(deleteItem);
+
+            const collapseItem = document.createElement('li');
+            collapseItem.innerText = 'Свернуть/развернуть';
+            collapseItem.onclick = () => {
+                toggleMessageCollapse(el);
+                contextMenu.classList.add('hidden');
+            };
+            contextMenu.appendChild(collapseItem);
+
+        }, 450); // удержание 450ms
+    }, { passive: false });
+
+    ['touchend','touchmove','touchcancel'].forEach(evt => {
+        el.addEventListener(evt, () => clearTimeout(timer));
+    });
+}
 
 
-    function createBlockElement(blockData, viewType) {
+  function createBlockElement(blockData, viewType) {
     const el = document.createElement("div");
     el.className = "block";
     el.dataset.blockId = blockData.id;
@@ -341,10 +551,9 @@ contextMenu.appendChild(collapseItem);
 
         // контейнер для текста (для свернутого режима)
         el.innerHTML = `
-    <div class="block-title" style="font-weight:bold;margin-bottom:6px;">${blockData.title}</div>
-    <div class="block-content">${blockData.text.replace(/\n/g, '<br>')}</div>
-`;
-
+            <div class="block-title" style="font-weight:bold;margin-bottom:6px;">${blockData.title}</div>
+            <div class="block-content">${blockData.text.replace(/\n/g, '<br>')}</div>
+        `;
 
         el.draggable = true;
         el.addEventListener('dragstart', handleDragStart);
@@ -360,21 +569,99 @@ contextMenu.appendChild(collapseItem);
 
         const menu = document.createElement("div");
         menu.className = "map-block-menu";
-        const btnAdd = document.createElement("button"); btnAdd.innerText = "+"; btnAdd.onclick = (e) => { e.stopPropagation(); addChildBlock(blockData.id); };
-        const btnDel = document.createElement("button"); btnDel.innerText = "×"; btnDel.onclick = (e) => { e.stopPropagation(); deleteBlockFromState(blockData.id); };
-        menu.appendChild(btnAdd); menu.appendChild(btnDel);
+        const btnAdd = document.createElement("button"); 
+        btnAdd.innerText = "+"; 
+        btnAdd.onclick = (e) => { e.stopPropagation(); addChildBlock(blockData.id); };
+        const btnDel = document.createElement("button"); 
+        btnDel.innerText = "×"; 
+        btnDel.onclick = (e) => { e.stopPropagation(); deleteBlockFromState(blockData.id); };
+        menu.appendChild(btnAdd); 
+        menu.appendChild(btnDel); 
         el.appendChild(menu);
     }
 
+    // Редактирование двойным тапом / dblclick
     enableInlineEditing(el, blockData, viewType);
+
+    // ПКМ меню
     setupContextMenu(el, blockData);
+
+    // =============================
+    // Мобильный long press для контекстного меню
+    // =============================
+    if ('ontouchstart' in window) {
+    setupLongPress(el, (e) => {
+        e.preventDefault();
+        showContextMenuNearBlock(el, blockData);
+    });
+}
+
+if ('ontouchstart' in window) {
+    setupLongPressMenu(el, blockData);
+}
 
     return el;
 }
 
+  
+
 
     function renderChat() { scriptArea.innerHTML = ""; appState.blocks.forEach(block => { scriptArea.appendChild(createBlockElement(block, 'chat')); }); if (appState.currentView === 'chat') { scriptArea.scrollTop = scriptArea.scrollHeight; } }
     function renderMindmap() { mindmapContentWrapper.innerHTML = ""; mindmapContentWrapper.style.transform = `scale(${appState.mapZoom})`; appState.blocks.forEach(block => { mindmapContentWrapper.appendChild(createBlockElement(block, 'map')); }); drawMapLines(); }
+  
+  function setupLongPress(el, callback, duration = 500) {
+    let timer;
+    el.addEventListener('touchstart', (e) => {
+        timer = setTimeout(() => callback(e), duration);
+    }, { passive: false });
+
+    el.addEventListener('touchend', () => clearTimeout(timer));
+    el.addEventListener('touchmove', () => clearTimeout(timer));
+}
+
+  function showContextMenuLeft(x, y, blockData) {
+    const menuWidth = 150; // ширина меню
+    const menuHeight = 200; // примерная высота
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // Считаем координаты так, чтобы меню слева от пальца
+    let posX = x - menuWidth;
+    if(posX < 0) posX = 0;
+
+    let posY = y;
+    if(posY + menuHeight > windowHeight) posY = windowHeight - menuHeight;
+    if(posY < 0) posY = 0;
+
+    contextMenu.style.left = posX + 'px';
+    contextMenu.style.top = posY + 'px';
+    contextMenu.classList.remove('hidden');
+
+    contextMenu.addEventListener('mousedown', e => e.preventDefault());
+    contextMenu.addEventListener('touchstart', e => e.preventDefault());
+
+    // Очистка и добавление пунктов меню
+    contextMenu.innerHTML = '';
+
+    const deleteItem = document.createElement('li');
+    deleteItem.innerText = 'Удалить блок';
+    deleteItem.onclick = () => deleteBlockFromState(blockData.id);
+    contextMenu.appendChild(deleteItem);
+
+    const collapseItem = document.createElement('li');
+    collapseItem.innerText = 'Свернуть/развернуть';
+    collapseItem.onclick = () => {
+        const blockEl = document.querySelector(`[data-block-id="${blockData.id}"]`);
+        toggleMessageCollapse(blockEl);
+        contextMenu.classList.add('hidden');
+    };
+    contextMenu.appendChild(collapseItem);
+}
+
+
+
+  
+  
     
     // =============================================
     // СОРТИРОВКА В ЧАТЕ (Drag and Drop)
@@ -415,3 +702,45 @@ contextMenu.appendChild(collapseItem);
     loadState();
 });
 
+function showContextMenuNearBlock(blockEl, blockData) {
+    const rect = blockEl.getBoundingClientRect();
+    const menuWidth = 150; // ширина меню
+    const menuHeight = 200; // примерная высота меню
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    // Определяем, где блок находится относительно центра экрана
+    let posX = (rect.left + rect.right) / 2 > windowWidth / 2
+        ? rect.left - menuWidth // если правее центра — показываем слева
+        : rect.right;           // если левее — справа
+
+    if(posX < 0) posX = 0;
+    if(posX + menuWidth > windowWidth) posX = windowWidth - menuWidth;
+
+    let posY = rect.top;
+    if(posY + menuHeight > windowHeight) posY = windowHeight - menuHeight;
+    if(posY < 0) posY = 0;
+
+    contextMenu.style.left = posX + 'px';
+    contextMenu.style.top = posY + 'px';
+    contextMenu.classList.remove('hidden');
+
+    contextMenu.innerHTML = '';
+
+    const deleteItem = document.createElement('li');
+    deleteItem.innerText = 'Удалить блок';
+    deleteItem.onclick = () => deleteBlockFromState(blockData.id);
+    contextMenu.appendChild(deleteItem);
+
+    const collapseItem = document.createElement('li');
+    collapseItem.innerText = 'Свернуть/развернуть';
+    collapseItem.onclick = () => {
+        toggleMessageCollapse(blockEl);
+        contextMenu.classList.add('hidden');
+    };
+    contextMenu.appendChild(collapseItem);
+
+    // Блокируем выделение текста
+    contextMenu.addEventListener('mousedown', e => e.preventDefault());
+    contextMenu.addEventListener('touchstart', e => e.preventDefault());
+}
