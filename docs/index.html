@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<link rel="stylesheet" href="style.css"> 
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Script Builder</title>
-<script src="app.js"></script>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -14,7 +13,6 @@
     <button id="btn-zoom-in">+</button>
     <button id="btn-zoom-out">−</button>
     <button id="btn-add-block">+ Блок</button>
-    <!-- Кнопка добавления блока на карту была удалена, чтобы использовать общую логику -->
 </div>
 
 <div id="workspace">
@@ -26,16 +24,17 @@
 <div id="mindmap-screen" class="hidden">
     <div id="mindmap-top">
         <button id="btn-close-map">Чат</button>
-        <!-- Кнопка добавления на карту тут не нужна, используйте контекстное меню -->
     </div>
     <div id="mindmap-area">
-        <!-- mindmap-content-wrapper будет создан в JS -->
+        <!-- mindmap-content-wrapper будет создан динамически через JS -->
     </div>
 </div>
-  
-<!-- Модальное окно и контекстное меню из оригинального HTML. Модалка будет удалена в JS -->
+
+<!-- Модальное окно и контекстное меню -->
 <div id="new-block-modal" class="modal hidden"></div>
 <ul id="context-menu" class="hidden"></ul>
 
+<!-- JS подключаем в конце body -->
+<script src="app.js"></script>
 </body>
 </html>
