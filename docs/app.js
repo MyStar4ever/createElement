@@ -19,20 +19,24 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const contextMenu = document.getElementById("context-menu");
 
     let mindmapContentWrapper = document.getElementById("mindmap-content-wrapper");
-    if (!mindmapContentWrapper) {
-        mindmapContentWrapper = document.createElement('div');
-        Object.assign(mindmapContentWrapper.style, { id: 'mindmap-content-wrapper', width: '5000px', height: '5000px', position: 'absolute', transformOrigin: '0 0' });
-        mindmapArea.appendChild(mindmapContentWrapper);
-    }
+if (!mindmapContentWrapper) {
+    mindmapContentWrapper = document.createElement('div');
+    mindmapContentWrapper.id = 'mindmap-content-wrapper'; // <- исправлено
+    Object.assign(mindmapContentWrapper.style, { width: '5000px', height: '5000px', position: 'absolute', transformOrigin: '0 0' });
+    mindmapArea.appendChild(mindmapContentWrapper);
+}
+
     const modalEl = document.getElementById("new-block-modal");
     if (modalEl) modalEl.remove();
 
 
     function applyZoom() {
-        if (appState.currentView === 'chat') { scriptAreaWrapper.style.transform = `scale(${appState.chatZoom})`; } 
-        else { if (mindmapContentWrapper) { mindmapContentWrapper.style.transform = `scale(${appState.mapZoom})`; } }
-        saveState();
-    }
+    renderAllViews(); // сначала рендерим
+    if (appState.currentView === 'chat') scriptAreaWrapper.style.transform = `scale(${appState.chatZoom})`;
+    else if (mindmapContentWrapper) mindmapContentWrapper.style.transform = `scale(${appState.mapZoom})`;
+    saveState();
+}
+
     document.getElementById("btn-zoom-in").onclick = () => { if (appState.currentView === 'chat') appState.chatZoom = zoomLevelNormal; else appState.mapZoom = zoomLevelNormal; applyZoom(); };
     document.getElementById("btn-zoom-out").onclick = () => { if (appState.currentView === 'chat') appState.chatZoom = zoomLevelFar; else appState.mapZoom = zoomLevelFar; applyZoom(); };
     document.getElementById("btn-open-map").onclick = () => { mapScreen.classList.remove("hidden"); appState.currentView = 'map'; applyZoom(); };
@@ -84,6 +88,14 @@ document.addEventListener('DOMContentLoaded', (event) => {
         renderAllViews(); saveState();
     }
 
+  
+  
+  
+  
+  
+  
+  
+  
     // =============================================
     // РЕНДЕРИНГ И РЕДАКТИРОВАНИЕ И КОНТЕКСТНОЕ МЕНЮ
     // =============================================
@@ -92,58 +104,168 @@ document.addEventListener('DOMContentLoaded', (event) => {
         renderChat(); renderMindmap(); contextMenu.classList.add('hidden');
     }
 
-    function enableInlineEditing(el, blockData, viewType) {
-        el.addEventListener("dblclick", (e) => {
-            e.stopPropagation();
-            if (e.target.tagName === 'TEXTAREA' || e.target.closest('.map-block-menu')) return;
+   function enableInlineEditing(el, blockData, viewType) {
+    const contentEl = el.querySelector('.block-content') || el; // теперь работаем с текстовым контейнером
 
-            const isTitleEdit = e.target.classList.contains('block-title') || viewType === 'map';
-            const currentText = isTitleEdit ? blockData.title : blockData.text;
+    contentEl.addEventListener("dblclick", (e) => {
+        e.stopPropagation();
+        if (e.target.tagName === 'TEXTAREA' || e.target.closest('.map-block-menu')) return;
 
-            const textarea = document.createElement("textarea");
-            textarea.value = currentText;
-            
-            Object.assign(textarea.style, {
-                width: '100%', boxSizing: 'border-box', background: 'inherit', border: 'none', padding: '0',
-                fontFamily: 'inherit', fontSize: 'inherit', color: 'inherit', borderRadius: 'inherit',
-                textAlign: viewType === 'chat' ? 'left' : 'center', overflow: 'hidden', minHeight: '40px'
-            });
+        const isTitleEdit = e.target.classList.contains('block-title') || viewType === 'map';
+        const currentText = isTitleEdit ? blockData.title : blockData.text;
 
-            const computedStyle = window.getComputedStyle(el);
-            textarea.style.padding = computedStyle.padding;
-            
-            // Плавное изменение размера textarea
-            const autoResize = () => { textarea.style.height = 'auto'; textarea.style.height = (textarea.scrollHeight) + 'px'; };
-            textarea.addEventListener('input', autoResize);
+        const textarea = document.createElement("textarea");
+        textarea.value = currentText;
 
-            // Фиксируем ширину перед заменой, чтобы предотвратить прыжки
-            const currentWidth = computedStyle.width;
-            el.style.width = currentWidth; 
-
-            el.innerHTML = ''; el.appendChild(textarea); el.classList.add('is-editing');
-            
-            textarea.focus(); autoResize(); 
-
-            const saveEdit = () => {
-                const newValue = textarea.value;
-                el.style.width = ''; // Снимаем принудительную фиксацию ширины
-
-                if (newValue === currentText) { renderAllViews(); return; }
-                
-                if (isTitleEdit) { updateBlockState(blockData.id, { title: newValue }); } 
-                else { updateBlockState(blockData.id, { text: newValue }); }
-            };
-
-            textarea.addEventListener("blur", saveEdit);
-            
-            textarea.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    if (e.shiftKey) { setTimeout(autoResize, 0); } // Новая строка с Shift
-                    else { e.preventDefault(); saveEdit(); } // Сохранение по Enter
-                }
-            });
+        Object.assign(textarea.style, {
+            width: '100%',
+            boxSizing: 'border-box',
+            background: 'inherit',
+            border: 'none',
+            padding: '0',
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+            color: 'inherit',
+            borderRadius: 'inherit',
+            textAlign: viewType === 'chat' ? 'left' : 'center',
+            overflow: 'hidden',
+            minHeight: '40px'
         });
+
+        const computedStyle = window.getComputedStyle(contentEl);
+        textarea.style.padding = computedStyle.padding;
+
+        const autoResize = () => { textarea.style.height = 'auto'; textarea.style.height = (textarea.scrollHeight) + 'px'; };
+        textarea.addEventListener('input', autoResize);
+
+        // Фиксируем ширину перед заменой
+        const currentWidth = computedStyle.width;
+        contentEl.style.width = currentWidth;
+
+        contentEl.innerHTML = '';
+        contentEl.appendChild(textarea);
+        contentEl.classList.add('is-editing');
+
+        textarea.focus();
+        autoResize();
+
+        const saveEdit = () => {
+    const newValue = textarea.value;
+    contentEl.style.width = '';
+
+    if (newValue === currentText) { renderAllViews(); return; }
+
+    if (isTitleEdit) {
+        updateBlockState(blockData.id, { title: newValue });
+    } else {
+        updateBlockState(blockData.id, { text: newValue });
     }
+
+    // сразу обновляем визуально, чтобы переносы строк появились
+    contentEl.innerHTML = newValue.replace(/\n/g, '<br>');
+};
+
+
+        textarea.addEventListener("blur", saveEdit);
+
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                if (e.shiftKey) { setTimeout(autoResize, 0); }
+                else { e.preventDefault(); saveEdit(); }
+            }
+        });
+    });
+}
+
+
+// Функция сворачивания/разворачивания блока
+function toggleMessageCollapse(blockEl) {
+    if (!blockEl) return;
+    const contentEl = blockEl.querySelector('.block-content');
+    if (!contentEl) return;
+
+    if (blockEl.classList.contains('collapsed')) {
+        blockEl.classList.remove('collapsed');
+        contentEl.style.maxHeight = '';
+    } else {
+        blockEl.classList.add('collapsed');
+        contentEl.style.maxHeight = '120px';
+    }
+}
+
+
+
+function setupContextMenu(el, blockData) {
+    // ПК — правый клик
+    el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showContextMenu(e.clientX, e.clientY, blockData);
+    });
+
+    // Мобильные — обычный тап
+    el.addEventListener('click', (e) => {
+        if ('ontouchstart' in window) { // только для тач-устройств
+            e.preventDefault();
+            e.stopPropagation();
+            const rect = el.getBoundingClientRect();
+            // показываем меню чуть ниже блока
+            showContextMenu(rect.left + 10, rect.top + 10, blockData);
+        }
+    });
+}
+
+// Вынесли показ меню в отдельную функцию
+function showContextMenu(x, y, blockData) {
+    contextMenu.style.top = `${y}px`;
+    contextMenu.style.left = `${x}px`;
+    contextMenu.classList.remove('hidden');
+    contextMenu.innerHTML = '';
+
+    const deleteItem = document.createElement('li');
+    deleteItem.innerText = 'Удалить блок';
+    deleteItem.onclick = () => deleteBlockFromState(blockData.id);
+    contextMenu.appendChild(deleteItem);
+
+    const collapseItem = document.createElement('li');
+    collapseItem.innerText = 'Свернуть/развернуть';
+    collapseItem.onclick = () => {
+        const blockEl = document.querySelector(`[data-block-id="${blockData.id}"]`);
+        toggleMessageCollapse(blockEl);
+        contextMenu.classList.add('hidden');
+    };
+    contextMenu.appendChild(collapseItem);
+
+    if (appState.currentView === 'chat') {
+        const mapItem = document.createElement('li');
+        mapItem.innerText = 'Показать на схеме';
+        mapItem.onclick = () => {
+            document.getElementById("btn-open-map").click();
+            setTimeout(() => focusOnBlock(blockData.id), 300);
+        };
+        contextMenu.appendChild(mapItem);
+    } else if (appState.currentView === 'map') {
+        const chatItem = document.createElement('li');
+        chatItem.innerText = 'Показать в чате';
+        chatItem.onclick = () => {
+            document.getElementById("btn-close-map").click();
+            setTimeout(() => focusOnBlock(blockData.id), 300);
+        };
+        contextMenu.appendChild(chatItem);
+
+        const addChildItem = document.createElement('li');
+        addChildItem.innerText = 'Добавить дочерний';
+        addChildItem.onclick = () => addChildBlock(blockData.id);
+        contextMenu.appendChild(addChildItem);
+    }
+}
+
+
+
+
+
+  
+
 
     function focusOnBlock(blockId) {
         const targetBlockEl = document.querySelector(`[data-block-id="${blockId}"]`);
@@ -151,43 +273,105 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     function setupContextMenu(el, blockData) {
-        el.addEventListener('contextmenu', (e) => {
-            e.preventDefault(); e.stopPropagation();
-            contextMenu.style.top = `${e.clientY}px`; contextMenu.style.left = `${e.clientX}px`;
-            contextMenu.classList.remove('hidden'); contextMenu.innerHTML = ''; 
-            
-            const deleteItem = document.createElement('li'); deleteItem.innerText = 'Удалить блок'; deleteItem.onclick = () => deleteBlockFromState(blockData.id); contextMenu.appendChild(deleteItem);
-            if (appState.currentView === 'chat') {
-                const mapItem = document.createElement('li'); mapItem.innerText = 'Показать на схеме'; mapItem.onclick = () => { document.getElementById("btn-open-map").click(); setTimeout(() => focusOnBlock(blockData.id), 300); }; contextMenu.appendChild(mapItem);
-            } else if (appState.currentView === 'map') {
-                const chatItem = document.createElement('li'); chatItem.innerText = 'Показать в чате'; chatItem.onclick = () => { document.getElementById("btn-close-map").click(); setTimeout(() => focusOnBlock(blockData.id), 300); }; contextMenu.appendChild(chatItem);
-                const addChildItem = document.createElement('li'); addChildItem.innerText = 'Добавить дочерний'; addChildItem.onclick = () => addChildBlock(blockData.id); contextMenu.appendChild(addChildItem);
-            }
-        });
-    }
-    document.addEventListener('click', () => { contextMenu.classList.add('hidden'); });
+    el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        contextMenu.style.top = `${e.clientY}px`;
+        contextMenu.style.left = `${e.clientX}px`;
+        contextMenu.classList.remove('hidden');
+        contextMenu.innerHTML = '';
+
+        // Удаление блока
+        const deleteItem = document.createElement('li');
+        deleteItem.innerText = 'Удалить блок';
+        deleteItem.onclick = () => deleteBlockFromState(blockData.id);
+        contextMenu.appendChild(deleteItem);
+
+        // Свернуть/развернуть блок
+       const collapseItem = document.createElement('li');
+collapseItem.innerText = 'Свернуть/развернуть';
+collapseItem.onclick = () => {
+    const blockEl = document.querySelector(`[data-block-id="${blockData.id}"]`);
+    toggleMessageCollapse(blockEl);
+    contextMenu.classList.add('hidden'); // закрываем меню сразу
+};
+contextMenu.appendChild(collapseItem);
+
+
+        // Остальные пункты
+        if (appState.currentView === 'chat') {
+            const mapItem = document.createElement('li');
+            mapItem.innerText = 'Показать на схеме';
+            mapItem.onclick = () => {
+                document.getElementById("btn-open-map").click();
+                setTimeout(() => focusOnBlock(blockData.id), 300);
+            };
+            contextMenu.appendChild(mapItem);
+        } else if (appState.currentView === 'map') {
+            const chatItem = document.createElement('li');
+            chatItem.innerText = 'Показать в чате';
+            chatItem.onclick = () => {
+                document.getElementById("btn-close-map").click();
+                setTimeout(() => focusOnBlock(blockData.id), 300);
+            };
+            contextMenu.appendChild(chatItem);
+
+            const addChildItem = document.createElement('li');
+            addChildItem.innerText = 'Добавить дочерний';
+            addChildItem.onclick = () => addChildBlock(blockData.id);
+            contextMenu.appendChild(addChildItem);
+        }
+    });
+}
+
+   document.addEventListener('click', (e) => {
+    if (!e.target.closest('.map-block-menu')) contextMenu.classList.add('hidden');
+});
+
 
 
     function createBlockElement(blockData, viewType) {
-        const el = document.createElement("div"); el.className = "block"; el.dataset.blockId = blockData.id;
-        if (viewType === 'chat') {
-            el.classList.add("chat");
-            el.innerHTML = `<div class="block-title" style="font-weight:bold;margin-bottom:6px;">${blockData.title}</div>
-                            <div class="block-text">${blockData.text}</div>`;
-            el.draggable = true;
-            el.addEventListener('dragstart', handleDragStart); el.addEventListener('dragover', handleDragOver);
-            el.addEventListener('drop', handleDrop); el.addEventListener('dragend', handleDragEnd);
-        } else if (viewType === 'map') {
-            el.innerText = blockData.title || blockData.text.substring(0, 30) + (blockData.text.length > 30 ? '...' : '');
-            el.style.position = "absolute"; el.style.left = blockData.x + "px"; el.style.top = blockData.y + "px";
-            el.onmousedown = (e) => dragBlock(e, el, blockData);
-            const menu = document.createElement("div"); menu.className = "map-block-menu";
-            const btnAdd = document.createElement("button"); btnAdd.innerText = "+"; btnAdd.onclick = (e) => { e.stopPropagation(); addChildBlock(blockData.id); };
-            const btnDel = document.createElement("button"); btnDel.innerText = "×"; btnDel.onclick = (e) => { e.stopPropagation(); deleteBlockFromState(blockData.id); };
-            menu.appendChild(btnAdd); menu.appendChild(btnDel); el.appendChild(menu);
-        }
-        enableInlineEditing(el, blockData, viewType); setupContextMenu(el, blockData); return el;
+    const el = document.createElement("div");
+    el.className = "block";
+    el.dataset.blockId = blockData.id;
+
+    if (viewType === 'chat') {
+        el.classList.add("chat");
+
+        // контейнер для текста (для свернутого режима)
+        el.innerHTML = `
+    <div class="block-title" style="font-weight:bold;margin-bottom:6px;">${blockData.title}</div>
+    <div class="block-content">${blockData.text.replace(/\n/g, '<br>')}</div>
+`;
+
+
+        el.draggable = true;
+        el.addEventListener('dragstart', handleDragStart);
+        el.addEventListener('dragover', handleDragOver);
+        el.addEventListener('drop', handleDrop);
+        el.addEventListener('dragend', handleDragEnd);
+    } else if (viewType === 'map') {
+        el.innerText = blockData.title || blockData.text.substring(0, 30) + (blockData.text.length > 30 ? '...' : '');
+        el.style.position = "absolute";
+        el.style.left = blockData.x + "px";
+        el.style.top = blockData.y + "px";
+        el.onmousedown = (e) => dragBlock(e, el, blockData);
+
+        const menu = document.createElement("div");
+        menu.className = "map-block-menu";
+        const btnAdd = document.createElement("button"); btnAdd.innerText = "+"; btnAdd.onclick = (e) => { e.stopPropagation(); addChildBlock(blockData.id); };
+        const btnDel = document.createElement("button"); btnDel.innerText = "×"; btnDel.onclick = (e) => { e.stopPropagation(); deleteBlockFromState(blockData.id); };
+        menu.appendChild(btnAdd); menu.appendChild(btnDel);
+        el.appendChild(menu);
     }
+
+    enableInlineEditing(el, blockData, viewType);
+    setupContextMenu(el, blockData);
+
+    return el;
+}
+
 
     function renderChat() { scriptArea.innerHTML = ""; appState.blocks.forEach(block => { scriptArea.appendChild(createBlockElement(block, 'chat')); }); if (appState.currentView === 'chat') { scriptArea.scrollTop = scriptArea.scrollHeight; } }
     function renderMindmap() { mindmapContentWrapper.innerHTML = ""; mindmapContentWrapper.style.transform = `scale(${appState.mapZoom})`; appState.blocks.forEach(block => { mindmapContentWrapper.appendChild(createBlockElement(block, 'map')); }); drawMapLines(); }
@@ -200,18 +384,18 @@ document.addEventListener('DOMContentLoaded', (event) => {
     function handleDragEnd(e) { this.style.opacity = '1'; draggedId = null; }
     function handleDragOver(e) { e.preventDefault(); }
     function handleDrop(e) {
-        e.stopPropagation();
-        if (draggedId !== this.dataset.blockId) {
-            // Исправлена ошибка: теперь правильно обращаемся к appState.blocks
-            const fromIndex = appState.blocks.findIndex(b => b.id == draggedId);
-            const toIndex = appState.blocks.findIndex(b => b.id == this.dataset.blockId);
-            if (fromIndex > -1 && toIndex > -1) {
-                const [draggedItem] = appState.blocks.splice(fromIndex, 1);
-                appState.blocks.splice(toIndex, 0, draggedItem);
-                renderAllViews(); saveState();
-            }
-        }
+    e.stopPropagation();
+    if (!draggedId || draggedId === this.dataset.blockId) return;
+
+    const fromIndex = appState.blocks.findIndex(b => b.id == draggedId);
+    const toIndex = appState.blocks.findIndex(b => b.id == this.dataset.blockId);
+    if (fromIndex > -1 && toIndex > -1) {
+        const [draggedItem] = appState.blocks.splice(fromIndex, 1);
+        appState.blocks.splice(toIndex, 0, draggedItem);
+        renderAllViews(); saveState();
     }
+}
+
 
     // =============================================
     // ФУНКЦИИ КАРТЫ
