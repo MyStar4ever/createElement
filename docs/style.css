@@ -122,3 +122,13 @@ textarea {
     border: none;
 }
 
+/* Меню не выделяет текст и убираем голубое подсвечивание */
+#context-menu, #context-menu * {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+
