@@ -167,9 +167,17 @@ function showContextMenuNearBlock(blockEl, blockData, animated = true) {
     // РЕНДЕРИНГ И РЕДАКТИРОВАНИЕ И КОНТЕКСТНОЕ МЕНЮ
     // =============================================
 
-    function renderAllViews() {
-        renderChat(); renderMindmap(); contextMenu.classList.add('hidden');
-    }
+  function renderAllViews() {
+    renderChat();
+    renderMindmap();
+    contextMenu.classList.add('hidden');
+
+    // 🔥 полностью отключаем выделение текста
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
+    document.body.style.msUserSelect = 'none';
+}
+
 
    function enableInlineEditing(el, blockData, viewType) {
     const contentEl = el.querySelector('.block-content') || el; // теперь работаем с текстовым контейнером
@@ -262,109 +270,7 @@ function toggleMessageCollapse(blockEl) {
 
 
 
-function setupContextMenu(el, blockData) {
-    // ПК — правый клик
-    el.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        showContextMenu(e.clientX, e.clientY, blockData);
-    });
 
-    // Мобильные — обычный тап
-    el.addEventListener('click', (e) => {
-        if ('ontouchstart' in window) { // только для тач-устройств
-            e.preventDefault();
-            e.stopPropagation();
-            const rect = el.getBoundingClientRect();
-            // показываем меню чуть ниже блока
-            showContextMenu(rect.left + 10, rect.top + 10, blockData);
-        }
-    });
-}
-
-// Вынесли показ меню в отдельную функцию
-function showContextMenu(x, y, blockData, animated = false) {
-    contextMenu.style.display = 'block';
-    contextMenu.style.opacity = 0;
-    contextMenu.style.transform = 'scale(0.9)';
-    contextMenu.innerHTML = '';
-
-    // размеры меню
-    const menuWidth = 150; // ширина меню, подгоняй под свой стиль
-    const menuHeight = 200; // примерная высота (можно динамически)
-
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
-    // если меню вылезает за правый край, смещаем влево
-    let posX = x;
-    if (x + menuWidth > windowWidth) {
-        posX = x - menuWidth; // сдвигаем влево
-        if (posX < 0) posX = 0; // не уходим за левый край
-    }
-
-    // если меню вылезает за низ, сдвигаем вверх
-    let posY = y;
-    if (y + menuHeight > windowHeight) {
-        posY = y - menuHeight;
-        if (posY < 0) posY = 0;
-    }
-
-    contextMenu.style.left = posX + 'px';
-    contextMenu.style.top = posY + 'px';
-
- // предотвращаем выделение текста
-    contextMenu.addEventListener('mousedown', e => e.preventDefault());
-    contextMenu.addEventListener('touchstart', e => e.preventDefault());
-
-
-    // анимация появления
-    contextMenu.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-    requestAnimationFrame(() => {
-        contextMenu.style.opacity = 1;
-        contextMenu.style.transform = 'scale(1)';
-    });
-
-    
-   // пункты меню
-    contextMenu.innerHTML = '';
-    const deleteItem = document.createElement('li');
-    deleteItem.innerText = 'Удалить блок';
-    deleteItem.onclick = () => deleteBlockFromState(blockData.id);
-    contextMenu.appendChild(deleteItem);
-
-    const collapseItem = document.createElement('li');
-    collapseItem.innerText = 'Свернуть/развернуть';
-    collapseItem.onclick = () => {
-        const blockEl = document.querySelector(`[data-block-id="${blockData.id}"]`);
-        toggleMessageCollapse(blockEl);
-        contextMenu.classList.add('hidden');
-    };
-    contextMenu.appendChild(collapseItem);
-
-    if (appState.currentView === 'chat') {
-        const mapItem = document.createElement('li');
-        mapItem.innerText = 'Показать на схеме';
-        mapItem.onclick = () => {
-            document.getElementById("btn-open-map").click();
-            setTimeout(() => focusOnBlock(blockData.id), 300);
-        };
-        contextMenu.appendChild(mapItem);
-    } else if (appState.currentView === 'map') {
-        const chatItem = document.createElement('li');
-        chatItem.innerText = 'Показать в чате';
-        chatItem.onclick = () => {
-            document.getElementById("btn-close-map").click();
-            setTimeout(() => focusOnBlock(blockData.id), 300);
-        };
-        contextMenu.appendChild(chatItem);
-
-        const addChildItem = document.createElement('li');
-        addChildItem.innerText = 'Добавить дочерний';
-        addChildItem.onclick = () => addChildBlock(blockData.id);
-        contextMenu.appendChild(addChildItem);
-    }
-}
 
 
 
@@ -418,11 +324,12 @@ function animateExpandTo(targetEl, targetWidthPx) {
 
    function setupContextMenu(el, blockData) {
     // ПК — правый клик
-    el.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        showContextMenu(e.clientX, e.clientY, blockData);
-    });
+   el.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    showContextMenuNearBlock(el, blockData);
+});
+
 
     // Мобильные — простой тап (touchstart)
     el.addEventListener('touchstart', (e) => {
