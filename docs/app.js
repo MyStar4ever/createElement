@@ -52,12 +52,79 @@ if (!mindmapContentWrapper) {
         if (storedState) { appState = JSON.parse(storedState); } 
         else { addBlockToState({ title: "Начало", text: "Дважды кликните, чтобы редактировать этот сценарий. Правый клик для меню." }); }
         appState.blocks.forEach(block => {
+          // вставить в конце инициализации, после определения addBlockToState
+const addBtn = document.getElementById("btn-add-block");
+if (addBtn) {
+  addBtn.onclick = () => addBlockToState({ title: "Новый блок", text: "Введите текст..." });
+}
             if (typeof block.x === 'undefined') block.x = 50; if (typeof block.y === 'undefined') block.y = 50 + Math.random() * 10;
             if (typeof block.children === 'undefined') block.children = []; if (typeof block.direction === 'undefined') block.direction = 'down';
         });
         applyZoom();
         renderAllViews();
     }
+  // overlay, чтобы заблокировать нативное выделение/жесты
+function createInteractionBlocker() {
+  const ov = document.createElement('div');
+  ov.id = 'interaction-blocker';
+  Object.assign(ov.style, {
+    position: 'fixed',
+    left: 0, top: 0, right: 0, bottom: 0,
+    zIndex: 9998,
+    background: 'transparent',
+    touchAction: 'none', /* блокирует скролл/жесты под overlay */
+    WebkitUserSelect: 'none',
+    userSelect: 'none'
+  });
+  return ov;
+}
+
+// показать меню рядом с блоком (от блока, а не от пальца)
+function showContextMenuNearBlock(blockEl, blockData, animated = true) {
+  // вставляем overlay, чтобы предотвратить выделение и системные меню
+  let blocker = document.getElementById('interaction-blocker');
+  if (!blocker) {
+    blocker = createInteractionBlocker();
+    document.body.appendChild(blocker);
+  }
+
+  // закроем меню при тапе вне
+  blocker.onclick = () => {
+    contextMenu.classList.add('hidden');
+    blocker.remove();
+  };
+
+  // позиционируем меню относительно блока (справа или слева)
+  const rect = blockEl.getBoundingClientRect();
+  const menuWidth = 170; // поправь по стилю
+  const menuHeight = 220; // ориентировочно
+  const ww = window.innerWidth, wh = window.innerHeight;
+
+  let posX = (rect.left + rect.right) / 2 > ww / 2 ? rect.left - menuWidth - 8 : rect.right + 8;
+  posX = Math.max(6, Math.min(posX, ww - menuWidth - 6));
+  let posY = rect.top;
+  if (posY + menuHeight > wh) posY = Math.max(6, wh - menuHeight - 6);
+
+  contextMenu.style.left = posX + 'px';
+  contextMenu.style.top = posY + 'px';
+  contextMenu.classList.remove('hidden');
+
+  // собрать пункты меню
+  contextMenu.innerHTML = '';
+  const make = (text, fn) => { const li = document.createElement('li'); li.innerText = text; li.onclick = () => { fn(); contextMenu.classList.add('hidden'); blocker.remove(); }; return li; };
+  contextMenu.appendChild(make('Удалить блок', () => deleteBlockFromState(blockData.id)));
+  contextMenu.appendChild(make('Свернуть/развернуть', () => toggleMessageCollapse(blockEl)));
+  if (appState.currentView === 'chat') contextMenu.appendChild(make('Показать на схеме', () => { document.getElementById("btn-open-map").click(); setTimeout(()=>focusOnBlock(blockData.id),300); }));
+  if (appState.currentView === 'map') {
+    contextMenu.appendChild(make('Показать в чате', () => { document.getElementById("btn-close-map").click(); setTimeout(()=>focusOnBlock(blockData.id),300); }));
+    contextMenu.appendChild(make('Добавить дочерний', () => addChildBlock(blockData.id)));
+  }
+
+  // запретить выделение внутри меню (дополнительно)
+  contextMenu.style.webkitUserSelect = 'none';
+  contextMenu.style.userSelect = 'none';
+}
+
     
     function findBlockById(id) { return appState.blocks.find(b => b.id === id); }
     
@@ -302,6 +369,43 @@ function showContextMenu(x, y, blockData, animated = false) {
 
 
 
+function animateExpandTo(targetEl, targetWidthPx) {
+  // Сбрасываем авто-стили
+  targetEl.style.transition = '';
+  // измеряем текущие размеры
+  const curRect = targetEl.getBoundingClientRect();
+  const curH = curRect.height;
+  const curW = curRect.width;
+
+  // назначаем явно текущие размеры
+  targetEl.style.width = curW + 'px';
+  targetEl.style.height = curH + 'px';
+
+  // форс перерисовку
+  targetEl.getBoundingClientRect();
+
+  // ставим цель (ширина -> потом высота)
+  targetEl.style.transition = 'width 180ms ease, height 220ms ease';
+  targetEl.style.width = targetWidthPx + 'px';
+
+  // когда ширина поменялась — поднимать высоту до scrollHeight плавно
+  const onWidthEnd = (ev) => {
+    if (ev.propertyName !== 'width') return;
+    targetEl.removeEventListener('transitionend', onWidthEnd);
+    const targetH = targetEl.scrollHeight;
+    targetEl.style.height = targetH + 'px';
+    const onHeightEnd = (e2) => {
+      if (e2.propertyName !== 'height') return;
+      targetEl.removeEventListener('transitionend', onHeightEnd);
+      // сбрасываем inline height, чтобы вернуться к auto
+      targetEl.style.transition = '';
+      targetEl.style.height = '';
+      targetEl.style.width = '';
+    };
+    targetEl.addEventListener('transitionend', onHeightEnd);
+  };
+  targetEl.addEventListener('transitionend', onWidthEnd);
+}
 
 
   
@@ -599,6 +703,23 @@ function setupLongPressMenu(el, blockData) {
 if ('ontouchstart' in window) {
     setupLongPressMenu(el, blockData);
 }
+    // установка long-press (только если мобильное устройство)
+if ('ontouchstart' in window) {
+  let pressTimer = null;
+  el.addEventListener('touchstart', (ev) => {
+    if (ev.touches.length > 1) return;
+    pressTimer = setTimeout(() => {
+      // показываем меню относительно блока, не пальца
+      showContextMenuNearBlock(el, blockData, true);
+    }, 420); // 420ms — не долго, не слишком быстро
+  }, { passive: true });
+
+  const cancelPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+  el.addEventListener('touchend', cancelPress);
+  el.addEventListener('touchmove', cancelPress);
+  el.addEventListener('touchcancel', cancelPress);
+}
+
 
     return el;
 }
