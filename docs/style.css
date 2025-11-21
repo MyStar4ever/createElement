@@ -15,6 +15,21 @@ body::-webkit-scrollbar-track, #workspace::-webkit-scrollbar-track, #mindmap-are
 body::-webkit-scrollbar-thumb, #workspace::-webkit-scrollbar-thumb, #mindmap-area::-webkit-scrollbar-thumb { background: #444; border-radius: 5px; }
 body::-webkit-scrollbar-thumb:hover, #workspace::-webkit-scrollbar-thumb:hover, #mindmap-area::-webkit-scrollbar-thumb:hover { background: #555; }
 
+/* Предотвращает выделение текста при долгом нажатии на большинстве элементов */
+body {
+    -webkit-user-select: none;  /* Safari/Chrome */
+    -moz-user-select: none;     /* Firefox */
+    -ms-user-select: none;      /* IE/Edge */
+    user-select: none;          /* Standard */
+}
+
+/* Разрешает выделение и работу с вводом текста */
+input, textarea {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
 
 #top-bar {
     background: #111; padding: 10px; display: flex; gap: 10px; border-bottom: 1px solid #222;
@@ -35,32 +50,69 @@ button:hover { background: #333; }
 
 #script-area {
     display: flex; flex-direction: column; gap: 12px; width: 100%;
-    align-items: flex-end; /* Выравнивание всех блоков по правому краю в чате */
+    align-items: flex-end;
 }
 
 .block {
     padding: 12px; background: #1e1e22; border-radius: 14px; max-width: 600px;
-    position: relative; transition: 0.25s ease, height 0.3s ease; /* Плавное изменение высоты */
-    min-width: 100px; text-align: center; box-sizing: border-box; cursor: grab; 
-    word-break: break-word; /* Добавлено: помогает длинным строкам переноситься */
+    position: relative; 
+    transition: 0.25s ease, height 0.3s ease, width 0.3s ease; /* Добавлен width transition */
+    min-width: 100px; text-align: center; box-sizing: border-box; 
+    word-break: break-word; 
+    cursor: pointer; 
 }
-.block:active { cursor: grabbing; }
 
 .block.chat {
     border-radius: 18px 18px 4px 18px; 
-    /* margin-left: auto; удалено, управляется родителем */
-    background: #242428; padding: 14px; max-width: 70%; text-align: left; 
+    background: #242428; 
+    padding: 14px;
+    max-width: 70%; /* Ограничение для режима просмотра */
+    text-align: left; 
 }
 
-/* При редактировании в чате */
-.block.chat.is-editing {
-    margin-right: auto !important; /* Предотвращаем прыжок влево, центрируем */
-    max-width: 600px !important; /* Растягиваем на всю доступную ширину */
+/* !!! ИСПРАВЛЕННОЕ ПРАВИЛО: Снимаем ограничение max-width только в режиме редактирования !!! */
+.block.is-editing-mode.chat {
+    max-width: 600px !important; /* Используем полную ширину контейнера, а не 70% */
 }
 
-/* Важно: сохраняем переносы строк при отображении */
-.block-text {
-    white-space: pre-wrap; /* Сохраняет пробелы и переносы строк */
+/* !!! ВАЖНОЕ НОВОЕ ПРАВИЛО: Стили для невидимой textarea !!! */
+.block-editor-textarea-seamless {
+    font-family: inherit; 
+    font-size: inherit;   
+    color: inherit;
+    background: inherit; 
+    border: none !important; 
+    outline: none !important;
+    box-shadow: none !important;
+    resize: none !important; 
+    display: block; 
+    width: 100%; 
+    box-sizing: border-box; 
+    padding: 0; /* Должен быть 0 */
+    margin: 0;
+    caret-color: #eee; 
+    transition: height 0.3s ease; 
+    white-space: pre-wrap; 
+    -webkit-tap-highlight-color: transparent; 
+    line-height: inherit;
+}
+
+/* !!! НОВОЕ ПРАВИЛО: Стили для невидимого input (заголовок) !!! */
+.block-editor-input-title-seamless {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: bold; /* Наследует жирность заголовка */
+    color: inherit;
+    background: inherit;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0; /* Паддинг 0, т.к. задан родителем */
+    margin-bottom: 6px; /* Отступ как у оригинального заголовка */
+    -webkit-tap-highlight-color: transparent;
 }
 
 
@@ -73,62 +125,22 @@ button:hover { background: #333; }
 .map-block-menu { position: absolute; top: -30px; right: 0; }
 .map-block-menu button { background: #333; color: #fff; border: none; margin: 2px; padding: 4px 8px; cursor: pointer; border-radius: 4px; }
 .map-block-menu button:hover { background: #555; }
-#context-menu { position: absolute; background: #1e1e22; border: 1px solid #333; list-style: none; padding: 5px; margin: 0; border-radius: 8px; z-index: 1000; }
-#context-menu li { padding: 5px 10px; cursor: pointer; }
-#context-menu li:hover { background: #333; }
+#context-menu { position: fixed; background: #1e1e22; border: 1px solid #333; list-style: none; padding: 6px 0; margin: 0; border-radius: 10px; z-index: 9999 !important; width: 170px; opacity: 0; transform: translateY(-4px); transition: opacity 120ms ease, transform 120ms ease; }
+#context-menu:not(.hidden) { opacity: 1; transform: translateY(0); }
 
-/* Убираем стандартную рамку textarea при фокусе и предотвращаем изменение размера */
-textarea:focus { outline: none !important; border: none !important; box-shadow: none !important; }
-textarea { 
-    resize: none !important; 
-    border: none !important; 
-    box-shadow: none !important;
-    transition: height 0.3s ease; /* Плавное изменение высоты textarea */
-}
+#context-menu li { list-style: none; padding: 10px 14px; cursor: pointer; user-select: none; }
+#context-menu li:active { background: #444; }
 
-.block-title.is-editing,
-.block-text.is-editing {
-    outline: none;
-    border: none;
-}
-
-.block-text, .block-title {
-    max-height: 200px; /* например */
-    overflow-y: auto;
+.block-content {
+  display: inline-block;
+  max-width: 100%; /* Должен занимать всю ширину внутри паддинга */
+  width: auto;
+  white-space: pre-wrap;
 }
 
 /* Свернутое сообщение */
-.block.collapsed {
-    max-height: 120px; 
-    overflow-y: auto;
-}
+.block.collapsed { max-height: 120px; overflow-y: auto; }
 
-/* Аккуратный тёмный скролл */
-.block.collapsed::-webkit-scrollbar {
-    width: 6px;
-}
-.block.collapsed::-webkit-scrollbar-thumb {
-    background-color: rgba(100,100,100,0.6);
-    border-radius: 3px;
-}
-.block.collapsed::-webkit-scrollbar-track {
-    background-color: transparent;
-}
-
-/* Редактируемый блок без рамки */
-.block-title.is-editing,
-.block-text.is-editing {
-    outline: none;
-    border: none;
-}
-
-/* Меню не выделяет текст и убираем голубое подсвечивание */
-#context-menu, #context-menu * {
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-
+.block.collapsed::-webkit-scrollbar { width: 6px; }
+.block.collapsed::-webkit-scrollbar-thumb { background-color: rgba(100,100,100,0.6); border-radius: 3px; }
+.block.collapsed::-webkit-scrollbar-track { background-color: transparent; }
