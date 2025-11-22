@@ -224,10 +224,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
             if (el.classList.contains('is-editing-mode')) return;
 
-             // Убираем принудительную фиксацию ширины, чтобы предотвратить прыжки макета
-        // const currentWidth = el.clientWidth;
-        // el.style.width = currentWidth + 'px';
-        el.classList.add('is-editing-mode');
+            // !!! ГЛАВНОЕ ИСПРАВЛЕНИЕ: Фиксируем текущую ширину перед DOM-манипуляциями !!!
+            const currentWidth = el.clientWidth;
+            el.style.width = currentWidth + 'px';
+            el.classList.add('is-editing-mode');
             
             // --- 1. Редактирование заголовка ---
             const inputTitle = document.createElement('input');
@@ -243,21 +243,13 @@ document.addEventListener('DOMContentLoaded', (event) => {
             const textarea = document.createElement('textarea');
             textarea.value = blockData.text;
             textarea.className = 'block-editor-textarea-seamless';
-               if (contentEl) {
-        contentEl.style.display = 'none';
-        contentEl.insertAdjacentElement('afterend', textarea);
-    }
+            if (contentEl) {
+                contentEl.style.display = 'none';
+                contentEl.insertAdjacentElement('afterend', textarea);
+            }
 
-    // !!! НОВОЕ ИСПРАВЛЕНИЕ: Принудительно выставляем ширину textarea СРАЗУ !!!
-    // Ждем следующий кадр, чтобы CSS применился к родителю
-    requestAnimationFrame(() => {
-        textarea.style.width = el.clientWidth + 'px'; // Устанавливаем ширину textarea равной ширине родителя с учетом max-width: 600px
-        autoResizeTextarea(textarea); // И сразу корректируем высоту
-    });
-    // !!! КОНЕЦ ИСПРАВЛЕНИЯ !!!
-
-    textarea.addEventListener('input', () => autoResizeTextarea(textarea));
-
+            autoResizeTextarea(textarea);
+            textarea.addEventListener('input', () => autoResizeTextarea(textarea));
 
             // Фокусируемся, но без дерганого скролла
             if (textarea) textarea.focus();
@@ -274,7 +266,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                     el.classList.remove('is-editing-mode'); 
                     
                     // !!! Сбрасываем принудительную ширину, чтобы вернуться к CSS-управлению !!!
-                
+                    el.style.width = ''; 
 
                     renderAllViews();
                     saveState();
