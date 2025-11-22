@@ -1,3 +1,15 @@
+// Код для управления контекстным меню
+document.addEventListener('contextmenu', function(e) {
+    let target = e.target;
+
+    // Если клик внутри редактируемого блока, блокируем меню
+    if (target.closest('.block.is-editing-mode') || target.isContentEditable) {
+        e.preventDefault();
+    }
+});
+
+
+
 document.addEventListener('DOMContentLoaded', (event) => {
     // ==========================
     // STATE И LOCALSTORAGE
@@ -95,7 +107,16 @@ document.addEventListener('DOMContentLoaded', (event) => {
             x = direction==='down' ? parentBlock.x : parentBlock.x + offset;
             y = direction==='down' ? parentBlock.y + offset : parentBlock.y;
         }
-        const newBlock = { id:newId, title:data.title||"", text:data.text||"", parent:parentId, children:[], direction, x, y };
+        const newBlock = {
+    id: newId,
+    title: data.title || "",
+    text: data.text || "",
+    parent: parentId,
+    children: [],
+    direction,
+    x, y,
+    collapsed: false // новый флаг
+};
         appState.blocks.push(newBlock);
         if(parentBlock) parentBlock.children.push(newId);
         renderAllViews();
@@ -162,17 +183,33 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     function toggleMessageCollapse(blockEl){
-        if(!blockEl) return;
-        const contentEl = blockEl.querySelector('.block-content');
-        if(!contentEl) return;
-        if(blockEl.classList.contains('collapsed')){
-            blockEl.classList.remove('collapsed');
-            contentEl.style.maxHeight='';
-        } else {
-            blockEl.classList.add('collapsed');
-            contentEl.style.maxHeight='120px';
-        }
+    if(!blockEl) return;
+    const contentEl = blockEl.querySelector('.block-content');
+    if(!contentEl) return;
+
+    const blockId = blockEl.dataset.blockId;
+    const blockData = appState.blocks.find(b => b.id == blockId);
+    if(!blockData) return;
+
+    // Определяем новое состояние
+    const isNowCollapsed = !blockEl.classList.contains('collapsed');
+
+    if(isNowCollapsed){
+        blockEl.classList.add('collapsed');
+        contentEl.style.maxHeight='120px';
+        blockData.collapsed = true;
+    } else {
+        blockEl.classList.remove('collapsed');
+        contentEl.style.maxHeight='';
+        blockData.collapsed = false;
     }
+
+    // !!! НОВОЕ: Сохраняем состояние в localStorage !!!
+    localStorage.setItem(`message_${blockId}_collapsed`, isNowCollapsed ? 'true' : 'false');
+}
+
+
+
 
     function animateExpandTo(targetEl, targetWidthPx){
         targetEl.style.transition='';
@@ -208,95 +245,101 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
   // --- Функция для автоматического изменения размера textarea по содержимому (Убрано дергание снизу) ---
-     function autoResizeTextarea(textarea) {
-        textarea.style.height = 'auto';
-        textarea.style.height = (textarea.scrollHeight) + 'px'; 
-    }
+     function enableInlineEditing(el, blockData, viewType){
+    if(!el) return;
+    const titleEl = el.querySelector('.block-title');
+    const contentEl = el.querySelector('.block-content');
 
-    // --- Обновленная функция Inline Editing (Финальная версия без прыжков) ---
-    function enableInlineEditing(el, blockData, viewType){
-        if(!el) return;
-        const titleEl = el.querySelector('.block-title');
-        const contentEl = el.querySelector('.block-content');
-        
-        const editHandler = (e)=>{
-            e.stopPropagation();
+    const editHandler = (e) => {
+        e.stopPropagation();
+        if(el.classList.contains('is-editing-mode')) return;
+        el.classList.add('is-editing-mode');
+if(contextMenu) contextMenu.classList.add('hidden'); // Скрываем контекстное меню при редактировании
 
-            if (el.classList.contains('is-editing-mode')) return;
 
-            // !!! ГЛАВНОЕ ИСПРАВЛЕНИЕ: Фиксируем текущую ширину перед DOM-манипуляциями !!!
-            const currentWidth = el.clientWidth;
-            el.style.width = currentWidth + 'px';
-            el.classList.add('is-editing-mode');
-            
-            // --- 1. Редактирование заголовка ---
-            const inputTitle = document.createElement('input');
-            inputTitle.type = 'text';
-            inputTitle.value = blockData.title;
-            inputTitle.className = 'block-editor-input-title-seamless';
-            if (titleEl) {
-                titleEl.style.display = 'none';
-                titleEl.insertAdjacentElement('afterend', inputTitle);
-            }
+        // --- Заголовок ---
+        const inputTitle = document.createElement('input');
+        inputTitle.type = 'text';
+        inputTitle.value = blockData.title;
+        inputTitle.className = 'block-editor-input-title-seamless';
+        if(titleEl) {
+            titleEl.style.display='none';
+            titleEl.insertAdjacentElement('afterend', inputTitle);
+        }
+      
+      // блокируем контекстное меню и touch-события на редактируемом блоке
+el.addEventListener('contextmenu', e => {
+    e.preventDefault(); // всегда блокируем контекстное меню внутри редактора
+});
 
-            // --- 2. Редактирование контента ---
-            const textarea = document.createElement('textarea');
-            textarea.value = blockData.text;
-            textarea.className = 'block-editor-textarea-seamless';
-            if (contentEl) {
-                contentEl.style.display = 'none';
-                contentEl.insertAdjacentElement('afterend', textarea);
-            }
+el.addEventListener('touchstart', e=>{
+            if(e.touches.length>1) return;
+            timer = setTimeout(()=>{
+                e.preventDefault();
+                showContextMenuNearBlock(el, blockData, true);
+            },450);
+        }, { passive:false });
 
-            autoResizeTextarea(textarea);
-            textarea.addEventListener('input', () => autoResizeTextarea(textarea));
 
-            // Фокусируемся, но без дерганого скролла
-            if (textarea) textarea.focus();
-            // else if (inputTitle) inputTitle.focus(); // Не фокусируемся на заголовке по умолчанию
+        // --- Контент ---
+        const textarea = document.createElement('textarea');
+        textarea.value = blockData.text;
+        textarea.className = 'block-editor-textarea-seamless';
 
-            const saveChanges = () => {
-                if (el.classList.contains('is-editing-mode')) {
-                    blockData.title = inputTitle.value;
-                    blockData.text = textarea.value;
+        // фиксируем **только textarea**, не весь блок
+        textarea.style.width = contentEl ? contentEl.clientWidth + 'px' : '100%';
+        textarea.style.height = contentEl ? contentEl.clientHeight + 'px' : 'auto';
+        textarea.style.overflow = 'hidden';
+        if(contentEl){
+            contentEl.style.display='none';
+            contentEl.insertAdjacentElement('afterend', textarea);
+        }
 
-                    if (inputTitle && inputTitle.parentNode) inputTitle.parentNode.removeChild(inputTitle);
-                    if (textarea && textarea.parentNode) textarea.parentNode.removeChild(textarea);
-                    
-                    el.classList.remove('is-editing-mode'); 
-                    
-                    // !!! Сбрасываем принудительную ширину, чтобы вернуться к CSS-управлению !!!
-                    el.style.width = ''; 
+        // --- Автоматическая подстройка размера ---
+        const resize = () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        };
+        textarea.addEventListener('input', resize);
+        resize();
 
-                    renderAllViews();
-                    saveState();
-                }
-            };
-            
-            // Используем 'pointerdown' для надежного срабатывания на мобильных
-            if (inputTitle) inputTitle.addEventListener('pointerdown', e => e.stopPropagation());
-            if (textarea) textarea.addEventListener('pointerdown', e => e.stopPropagation());
+        textarea.focus();
 
-            if (inputTitle) inputTitle.onblur = saveChanges;
-            if (textarea) textarea.onblur = saveChanges;
-            textarea.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    saveChanges();
-                }
-            });
-            inputTitle.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    saveChanges();
-                }
-            });
+        const saveChanges = () => {
+            blockData.title = inputTitle.value;
+            blockData.text = textarea.value;
+            inputTitle.remove();
+            textarea.remove();
+            if(titleEl) titleEl.style.display='';
+            if(contentEl) contentEl.style.display='';
+            el.classList.remove('is-editing-mode');
+            renderAllViews();
+            saveState();
         };
 
-        if(viewType==='chat'){
-            el.ondblclick = editHandler;
-        }
+        inputTitle.onblur = saveChanges;
+        textarea.onblur = saveChanges;
+
+        textarea.addEventListener('keydown', e => {
+            if(e.key==='Enter' && !e.shiftKey){
+                e.preventDefault();
+                saveChanges();
+            }
+        });
+
+        inputTitle.addEventListener('keydown', e => {
+            if(e.key==='Enter'){
+                e.preventDefault();
+                saveChanges();
+            }
+        });
+    };
+
+    if(viewType==='chat'){
+        el.ondblclick = editHandler;
     }
+}
+
 
     function createBlockElement(blockData, viewType){
         // ... (остается без изменений) ...
@@ -334,6 +377,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
             const btnDel = document.createElement("button");
             btnDel.innerText = "×";
+          
             // Добавлено предотвращение дефолтного события для сенсорных экранов
             btnDel.addEventListener('touchstart', e => e.preventDefault()); 
             btnDel.onclick=(e)=>{ e.stopPropagation(); deleteBlockFromState(blockData.id); };
@@ -349,11 +393,34 @@ document.addEventListener('DOMContentLoaded', (event) => {
     }
 
     function renderChat(){
-        if(!scriptArea) return;
-        scriptArea.innerHTML='';
-        appState.blocks.forEach(block=>scriptArea.appendChild(createBlockElement(block,'chat')));
-        if(appState.currentView==='chat') scriptArea.scrollTop=scriptArea.scrollHeight;
-    }
+    if(!scriptArea) return;
+
+    // сохраняем состояния
+    const savedStates = {};
+    scriptArea.querySelectorAll('.block').forEach(b=>{
+        const id = b.dataset.blockId;
+        savedStates[id] = {
+            collapsed: b.classList.contains('collapsed'),
+            scrollTop: b.querySelector('.block-content')?.scrollTop || 0
+        };
+    });
+
+    scriptArea.innerHTML='';
+    appState.blocks.forEach(block=>{
+        const el = createBlockElement(block,'chat');
+
+        if(savedStates[block.id]){
+            if(savedStates[block.id].collapsed) el.classList.add('collapsed');
+            const contentEl = el.querySelector('.block-content');
+            if(contentEl) contentEl.scrollTop = savedStates[block.id].scrollTop;
+        }
+
+        scriptArea.appendChild(el);
+    });
+    
+    if(appState.currentView==='chat') scriptArea.scrollTop=scriptArea.scrollHeight;
+}
+
 
     function renderMindmap(){
         if (!mindmapContentWrapper) return;
@@ -452,17 +519,24 @@ document.addEventListener('DOMContentLoaded', (event) => {
         contextMenu.classList.remove('hidden');
         contextMenu.innerHTML='';
 
-        const makeItem = (text, fn)=>{
-            const li=document.createElement('li');
-            li.innerText=text;
-            // !!! Fix: Добавляем preventDefault для тач-событий на пунктах меню !!!
-            li.addEventListener('touchstart', e => e.preventDefault()); 
-            li.onclick=()=>{
-                fn();
-                contextMenu.classList.add('hidden');
-            };
-            return li;
-        };
+        const makeItem = (text, fn) => {
+    const li = document.createElement('li');
+    li.innerText = text;
+
+    const handler = (e) => {
+        e.stopPropagation();
+        fn();
+        contextMenu.classList.add('hidden');
+    };
+
+    li.addEventListener('click', handler);
+    li.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // чтобы не срабатывали лишние события
+        handler(e);
+    });
+
+    return li;
+};
 
         contextMenu.appendChild(makeItem('Удалить блок',()=>deleteBlockFromState(blockData.id)));
         contextMenu.appendChild(makeItem('Свернуть/развернуть',()=>toggleMessageCollapse(blockEl)));
@@ -506,22 +580,17 @@ document.addEventListener('DOMContentLoaded', (event) => {
     function setupLongPressMenu(el, blockData){
         let timer=null;
 
-        el.addEventListener('touchstart', e=>{
-            if(e.touches.length>1) return;
-            timer = setTimeout(()=>{
-                e.preventDefault();
-                showContextMenuNearBlock(el, blockData, true);
-            },450);
-        }, { passive:false });
+el.addEventListener('touchstart', e => {
+    if(e.touches.length > 1) return;
+    if (el.classList.contains('is-editing-mode')) return; // <-- не показывать меню в редакторе
+    timer = setTimeout(() => {
+        e.preventDefault();
+        showContextMenuNearBlock(el, blockData, true);
+    }, 450);
+}, { passive:false });
 
-        ['touchend','touchmove','touchcancel'].forEach(evt=>{
-            el.addEventListener(evt, ()=>clearTimeout(timer));
-        });
 
-        el.addEventListener('contextmenu', e=>{
-            e.preventDefault();
-            showContextMenuNearBlock(el, blockData);
-        });
+
     }
 
     // --- Обновленный обработчик закрытия меню по клику вне его ---
@@ -543,3 +612,84 @@ document.addEventListener('DOMContentLoaded', (event) => {
     
     loadState();
 });
+
+
+
+// Сохранение позиции прокрутки перед "переходом" или перезагрузкой
+window.addEventListener('beforeunload', () => {
+    localStorage.setItem('scrollPosition', window.scrollY);
+});
+
+// Восстановление позиции прокрутки после загрузки
+window.addEventListener('load', () => {
+    const savedScrollPosition = localStorage.getItem('scrollPosition');
+    if (savedScrollPosition) {
+        window.scrollTo(0, parseInt(savedScrollPosition));
+        localStorage.removeItem('scrollPosition'); // Очистка после восстановления (опционально)
+    }
+});
+
+
+// Восстановление позиции прокрутки после загрузки
+window.addEventListener('load', () => {
+    const savedScrollPosition = sessionStorage.getItem('scrollPosition');
+    if (savedScrollPosition) {
+        window.scrollTo(0, parseInt(savedScrollPosition));
+        sessionStorage.removeItem('scrollPosition'); // Опционально удалить после восстановления
+    }
+});
+
+// Код для управления контекстным меню
+document.addEventListener('contextmenu', function(e) {
+    let target = e.target;
+
+    // Если цель или её родительский блок в режиме редактирования — блокируем контекстное меню
+    while (target && target !== document.body) {
+        if (target.closest('.block.is-editing-mode') || target.isContentEditable) {
+            e.preventDefault();
+            return;
+        }
+        target = target.parentNode;
+    }
+
+    // Для всех остальных элементов разрешаем дефолтное меню
+});
+
+
+ 
+
+// Функция для восстановления состояний сообщений из localStorage
+function restoreMessageStates() {
+    // Выбираем все элементы с классом 'block' и атрибутом 'data-block-id'
+    const messages = document.querySelectorAll('.block[data-block-id]'); 
+
+    messages.forEach(blockEl => {
+        const blockId = blockEl.dataset.blockId;
+        const savedState = localStorage.getItem(`message_${blockId}_collapsed`);
+
+        const contentEl = blockEl.querySelector('.block-content');
+
+        if (savedState === 'true') {
+            blockEl.classList.add('collapsed');
+            if (contentEl) contentEl.style.maxHeight = '120px';
+            // Также обновляем appState, если нужно
+            const blockData = appState.blocks.find(b => b.id == blockId);
+            if(blockData) blockData.collapsed = true;
+
+        } else {
+            blockEl.classList.remove('collapsed');
+            if (contentEl) contentEl.style.maxHeight = '';
+            // Также обновляем appState, если нужно
+            const blockData = appState.blocks.find(b => b.id == blockId);
+            if(blockData) blockData.collapsed = false;
+        }
+    });
+}
+
+// Вызываем функцию восстановления при загрузке страницы
+window.addEventListener('load', restoreMessageStates);
+
+// Если переключение режима "Схема" не перезагружает страницу, 
+// а просто перерисовывает HTML, вам нужно вызывать 
+// restoreMessageStates() сразу после того, как HTML был обновлен.
+
